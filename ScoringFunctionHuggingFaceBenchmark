@@ -1,0 +1,55 @@
+! pip install xlsxwriter
+! pip install transformers
+import pandas as pd
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import pandas as pd
+import numpy as np
+
+# Load the pre-trained BERT model and tokenizer
+model_name_or_path = "bert-base-chinese"
+tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+model = AutoModelForSequenceClassification.from_pretrained(model_name_or_path)
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+# Read the input Excel file containing Chinese text data
+input_file = "testdemo.xlsx"
+data = pd.read_excel('/content/drive/MyDrive/testdemo.xlsx')
+
+# Tokenize the Chinese text data using the BERT tokenizer
+encoded_data = tokenizer(data["智语2.0"].tolist(), padding=True, truncation=True, max_length=128, return_tensors="pt")
+
+# Use the pre-trained BERT model to score the Chinese text data
+output = model(**encoded_data)
+scores = output.logits.softmax(dim=-1).tolist()
+
+# Add the scores to the input data
+data["score"] = [score[1] for score in scores]
+
+# Write the scored data to a new Excel file
+input_file_name = "testscore.xlsx"
+data.to_excel(output_file, index=False)
+
+file_name = '/content/drive/MyDrive/testdemo.xlsx'
+excel_file = pd.ExcelFile(file_name)
+sheet_names = excel_file.sheet_names
+output_file_name = 'testscore.xlsx'
+writer = pd.ExcelWriter(output_file_name,engine='xlsxwriter')
+coun = 0
+for sheet_name in sheet_names:
+  data = pd.read_excel(file_name, sheet_name=sheet_name)
+  dataoutput = data.copy()
+  # Tokenize the Chinese text data using the BERT tokenizer
+  for column in data.columns:
+    encoded_data = tokenizer(data[column].apply(lambda x:str(x)).tolist(), padding=True, truncation=True, max_length=128, return_tensors="pt")
+
+    # Use the pre-trained BERT model to score the Chinese text data
+    output = model(**encoded_data)
+    scores = output.logits.softmax(dim=-1).tolist()
+
+    # Add the scores to the input data
+    dataoutput[column] = [np.mean(scores) for score in scores]
+  coun = coun+1
+  dataoutput.to_excel(writer, sheet_name=str(coun), index=False)
+writer.close()
