@@ -39,10 +39,11 @@ writer = pd.ExcelWriter(output_file_name,engine='xlsxwriter')
 coun = 0
 for sheet_name in sheet_names:
   data = pd.read_excel(file_name, sheet_name=sheet_name)
+  data = data.astype(str)
   dataoutput = data.copy()
   # Tokenize the Chinese text data using the BERT tokenizer
   for column in data.columns:
-    encoded_data = tokenizer(data[column].apply(lambda x:str(x)).tolist(), padding=True, truncation=True, max_length=128, return_tensors="pt")
+    encoded_data = tokenizer(data[column].tolist(), padding=True, truncation=True, max_length=128, return_tensors="pt")
 
     # Use the pre-trained BERT model to score the Chinese text data
     output = model(**encoded_data)
